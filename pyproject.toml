@@ -1,0 +1,42 @@
+[project]
+name = "askfm-api"
+version = "0.1.1"
+description = "Unofficial API wrapper for https://ask.fm"
+readme = "README.md"
+authors = [
+    {name = "snowwm", email = "snowwontmelt@gmail.com"},
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "requests~=2.25",
+]
+dev-dependencies = [
+    "black~=20.8b1",
+    "isort~=5.7",
+    "mypy~=0.812",
+    "twine~=3.3",
+]
+requires-python = ">=3.9"
+dynamic = ["classifiers"]
+license = {text = "MIT"}
+
+[project.urls]
+homepage = "https://github.com/AskfmForHumans/askfm-api"
+
+[tool.pdm.scripts]
+format.shell = """
+    echo isort\
+    && isort --profile black --fss --skip-gitignore .\
+    && echo black\
+    && black .
+    """
+typechk = "mypy --exclude __pypackages__ ."
+publish = "twine upload dist/*"
+
+[build-system]
+requires = ["pdm-pep517"]
+build-backend = "pdm.pep517.api"
