@@ -35,7 +35,7 @@ format.shell = """
     && black .
     """
 typechk = "mypy --exclude __pypackages__ ."
-publish = "twine upload dist/*"
+publish = "pdm build && twine upload dist/*"
 
 [build-system]
 requires = ["pdm-pep517"]

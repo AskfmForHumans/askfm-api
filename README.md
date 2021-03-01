@@ -3,11 +3,12 @@
 [![PyPI version](https://img.shields.io/pypi/v/askfm-api.svg)](https://pypi.org/project/askfm-api)
 [![PyPI status](https://img.shields.io/pypi/status/askfm-api.svg)](https://pypi.org/project/askfm-api)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Project manager: pdm](https://img.shields.io/badge/project%20manager-pdm-blue.svg)](https://github.com/frostming/pdm)
 
 This aims to be a powerful Python wrapper around the undocumented ASKfm API for its mobile apps.
 
 Currently based on reverse-engineering ASKfm Android app v4.67.1, which uses ASKfm API version 1.18.
-The core logic is quite complete, but I've implemented helpers (in the `askfm_api.requests` module) for only a small subset of API methods.
+The core logic is quite complete, but only a small subset of API methods have helpers in the `askfm_api.requests` module so far.
 
 ## Usage
 
@@ -42,7 +43,7 @@ except AskfmApiError as e:
 All requests are signed using a secret key (unique per app version) that is stored inside the official app in an obfuscated manner.
 I don't find it ethical to publish it, so if you want to use this library, your options are:
 - extract the key by yourself
-- contact me, explain your use case and ask for the key
+- contact [me](https://github.com/snowwm), explain your use case and ask for the key
 
 ## Related work / See also
 
