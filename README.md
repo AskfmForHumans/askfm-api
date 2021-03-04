@@ -38,12 +38,18 @@ except AskfmApiError as e:
     # error code returned by the API, e. g. 'session_expired'
 ```
 
-## Signing key
+### Signing key
 
 All requests are signed using a secret key (unique per app version) that is stored inside the official app in an obfuscated manner.
 I don't find it ethical to publish it, so if you want to use this library, your options are:
 - extract the key by yourself
 - contact [me](https://github.com/snowwm), explain your use case and ask for the key
+
+## Todo
+
+- feat: Add more methods
+- feat: Refresh expired tokens
+- tests: Add tests
 
 ## Related work / See also
 

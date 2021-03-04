@@ -1,7 +1,3 @@
-# TODO feat: refresh expired tokens
-# TODO feat: more methods
-# TODO tests: add
-
 from dataclasses import dataclass, field
 import hmac
 import json
