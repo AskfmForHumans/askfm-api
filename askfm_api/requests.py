@@ -24,6 +24,11 @@ def make_req(method, path, **req_kwargs):
 # === My profile ===
 
 
+@make_req("GET", "/my/profile", unwrap_key="profile")
+def fetch_my_profile():
+    return {}
+
+
 @make_req(
     "GET",
     "/notifications",
@@ -108,6 +113,26 @@ def send_question(users: list[str], text: str, anon: bool = False):
             "body": text,
         },
     }
+
+
+# === Report/block ===
+
+
+@make_req("POST", "/report/answer")
+def report_answer(question_id: IdType, reason: Optional[str] = None):
+    return {"qid": question_id, "reason": reason}
+
+
+@make_req("POST", "/report/question")
+def report_question(
+    question_id: IdType, reason: Optional[str] = None, should_block: bool = False
+):
+    return {"qid": question_id, "reason": reason, "block": should_block}
+
+
+@make_req("POST", "/report/user")
+def report_user(uname: str, reason: Optional[str] = None, should_block: bool = False):
+    return {"uid": uname, "reason": reason, "block": should_block}
 
 
 # === Util ===
