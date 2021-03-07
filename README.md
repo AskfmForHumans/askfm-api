@@ -49,6 +49,7 @@ I don't find it ethical to publish it, so if you want to use this library, your 
 
 - feat: Add more methods
 - feat: Refresh expired tokens
+- feat: Group errors into categories
 - tests: Add tests
 
 ## Related work / See also

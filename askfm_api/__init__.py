@@ -119,9 +119,7 @@ class AskfmApi:
         url = "https://" + self.host + path
 
         params = {"rt": self.rt, "ts": int(time.time()), **params}
-        params = {
-            k: (str(v) if isinstance(v, (int, bool)) else v) for k, v in params.items()
-        }
+        params = self.normalize_params(params)
         if has_body:
             params = {"json": json.dumps(params, sort_keys=True, separators=(",", ":"))}
 
@@ -147,6 +145,16 @@ class AskfmApi:
 
         res = res.json()
         return res
+
+    def normalize_params(self, params: ReqParams) -> ReqParams:
+        result = {}
+        for k, v in params.items():
+            if v is None:
+                continue
+            if isinstance(v, (int, bool)):
+                v = str(v).lower()
+            result[k] = v
+        return result
 
     def get_signature(self, method: str, path: str, params: StrParams) -> str:
         quoted = [key + "%" + quote(val, safe="!'()~") for (key, val) in params.items()]
