@@ -47,8 +47,7 @@ I don't find it ethical to publish it, so if you want to use this library, your 
 
 ## Todo
 
-- feat: Add more methods
-- feat: Refresh expired tokens
+- feat: Add more method helpers
 - tests: Add tests
 
 ## Related work / See also

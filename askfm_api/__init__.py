@@ -12,7 +12,7 @@ from urllib.parse import quote
 from requests import Session
 
 from . import requests as _r
-from .errors import AskfmApiError
+from .errors import ERROR_CODE_MAP, AskfmApiError, SessionError
 
 # === Defaults ===
 DEFAULT_HEADERS = {
@@ -49,21 +49,28 @@ class AskfmApi:
         *,
         device_id: Optional[str] = None,
         access_token: Optional[str] = None,
+        auto_refresh_session: bool = True,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
         host: str = DEFAULT_HOST,
         headers: dict[str, str] = DEFAULT_HEADERS,
     ) -> None:
         self.api_key = api_key.encode("ascii")
         self.device_id = device_id or secrets.token_hex(8)
-        self.rt = "1"
-
-        self.sess = Session()
+        self.auto_refresh_session = auto_refresh_session
+        self.username = username
+        self.password = password
         self.host = host
+
+        self.rt = "1"
+        self.sess = Session()
         self.sess.headers["Host"] = host
         self.sess.headers.update(headers)
 
         if access_token is None:
-            access_token = self.request(_r.fetch_access_token(self.device_id))
-        self.set_access_token(access_token)
+            self.refresh_session()
+        else:
+            self.set_access_token(access_token)
 
     def request(
         self,
@@ -79,6 +86,13 @@ class AskfmApi:
             params = req.params
 
         res = self.request_raw(req.method, req.path, params)
+        if (
+            self.auto_refresh_session
+            and "error" in res
+            and ERROR_CODE_MAP[res["error"]] is SessionError
+        ):
+            self.refresh_session()
+            res = self.request_raw(req.method, req.path, params)  # attempt #2
 
         if "error" in res:
             raise AskfmApiError.from_response(res)
@@ -162,11 +176,24 @@ class AskfmApi:
         hmac_ = hmac.new(self.api_key, msg.encode(), "sha1")
         return hmac_.hexdigest()
 
-    def login(self, uname: str, passwd: str) -> Response:
-        req = _r.login(uname, passwd, self.device_id)
-        res = self.request(req)
+    def login(self, username: str, password: str) -> Response:
+        res = self.request(_r.login(username, password, self.device_id))
         self.set_access_token(res["accessToken"])
+        if self.auto_refresh_session:
+            self.username = username
+            self.password = password
         return res["user"]
+
+    def refresh_session(self) -> None:
+        old_val = self.auto_refresh_session
+        self.auto_refresh_session = False  # guard against recursive refreshes
+
+        access_token = self.request(_r.fetch_access_token(self.device_id))
+        self.set_access_token(access_token)
+        if self.username is not None and self.password is not None:
+            self.login(self.username, self.password)
+
+        self.auto_refresh_session = old_val
 
     def set_access_token(self, token: str) -> None:
         self.access_token = token

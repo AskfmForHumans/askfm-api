@@ -1,6 +1,6 @@
 [project]
 name = "askfm-api"
-version = "0.1.3"
+version = "0.1.4"
 description = "Unofficial API wrapper for https://ask.fm"
 readme = "README.md"
 authors = [

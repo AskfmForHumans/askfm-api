@@ -102,8 +102,8 @@ def search_users_by_hashtag(*hashtags: str):
 
 
 @make_req("GET", "/users/details", unwrap_key="user")
-def fetch_profile(uname: str):
-    return {"uid": uname}
+def fetch_profile(username: str):
+    return {"uid": username}
 
 
 @make_req("POST", "/users/questions")
@@ -133,8 +133,10 @@ def report_question(
 
 
 @make_req("POST", "/report/user")
-def report_user(uname: str, reason: Optional[str] = None, should_block: bool = False):
-    return {"uid": uname, "reason": reason, "block": should_block}
+def report_user(
+    username: str, reason: Optional[str] = None, should_block: bool = False
+):
+    return {"uid": username, "reason": reason, "block": should_block}
 
 
 # === Util ===
@@ -146,10 +148,10 @@ def fetch_access_token(device_id: IdType):
 
 
 @make_req("POST", "/authorize")
-def login(uname: str, passwd: str, device_id: IdType):
+def login(username: str, password: str, device_id: IdType):
     return {
-        "uid": uname,
-        "pass": passwd,
+        "uid": username,
+        "pass": password,
         "did": device_id,
         "guid": device_id,
     }
