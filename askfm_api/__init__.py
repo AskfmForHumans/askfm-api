@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 import hmac
 import json
@@ -10,6 +12,7 @@ from urllib.parse import quote
 from requests import Session
 
 from . import requests as _r
+from .errors import AskfmApiError
 
 # === Defaults ===
 DEFAULT_HEADERS = {
@@ -37,11 +40,6 @@ class Request:
     unwrap_key: Optional[str] = None
     paginated: bool = False
     item_id_key: Optional[str] = None
-
-
-class AskfmApiError(Exception):
-    def __init__(self, response: Response) -> None:
-        super().__init__(response["error"])
 
 
 class AskfmApi:
@@ -83,7 +81,7 @@ class AskfmApi:
         res = self.request_raw(req.method, req.path, params)
 
         if "error" in res:
-            raise AskfmApiError(res)
+            raise AskfmApiError.from_response(res)
 
         if unwrap and req.unwrap_key:
             res = res[req.unwrap_key]
