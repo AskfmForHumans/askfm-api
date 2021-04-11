@@ -9,8 +9,10 @@ class AskfmApiError(Exception):
     """Base class for all errors in askfm_api."""
 
     def __init__(self, response: askfm_api.Response) -> None:
-        super().__init__(response["error"])
+        code = response["error"]
+        super().__init__(code)
         self.response = response
+        self.code = code
 
     @staticmethod
     def from_response(response: askfm_api.Response) -> AskfmApiError:

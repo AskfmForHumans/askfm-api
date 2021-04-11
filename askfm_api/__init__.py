@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import contextlib
 from dataclasses import dataclass, field
 import hmac
+import itertools
 import json
 import logging
 import secrets
@@ -12,7 +14,7 @@ from urllib.parse import quote
 from requests import Session
 
 from . import requests as _r
-from .errors import ERROR_CODE_MAP, AskfmApiError, SessionError
+from .errors import AskfmApiError, OperationError, RequestError, SessionError
 
 # === Defaults ===
 DEFAULT_HEADERS = {
@@ -29,6 +31,7 @@ DEFAULT_LIMIT = 50
 ReqParams = dict[str, Any]
 StrParams = dict[str, str]
 Response = Any
+Auth = tuple[str, str]  # login, password
 
 
 @dataclass
@@ -43,34 +46,108 @@ class Request:
 
 
 class AskfmApi:
+    api_key: bytes
+    auto_refresh_session: bool
+    device_id: str
+    auth: Optional[Auth]
+    headers: dict[str, str]
+
+    logged_in: bool = False
+    sess: Session
+    rt: str = "1"
+
+    _access_token: Optional[str] = None
+    _host: str
+
+    @classmethod
+    def random_device_id(cls):
+        return secrets.token_hex(8)
+
     def __init__(
         self,
-        api_key: str,
+        api_key: Union[str, bytes],
         *,
+        auto_refresh_session: bool = True,
         device_id: Optional[str] = None,
         access_token: Optional[str] = None,
-        auto_refresh_session: bool = True,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
+        logged_in: bool = False,
+        auth: Optional[Auth] = None,
         host: str = DEFAULT_HOST,
         headers: dict[str, str] = DEFAULT_HEADERS,
     ) -> None:
-        self.api_key = api_key.encode("ascii")
-        self.device_id = device_id or secrets.token_hex(8)
+        if isinstance(api_key, str):
+            api_key = bytes(api_key, encoding="ascii")
+        self.api_key = api_key
         self.auto_refresh_session = auto_refresh_session
-        self.username = username
-        self.password = password
+        self.device_id = device_id or AskfmApi.random_device_id()
+        self.auth = auth
+
+        self.sess = Session()
+        self.sess.headers.update(headers)
         self.host = host
 
-        self.rt = "1"
-        self.sess = Session()
-        self.sess.headers["Host"] = host
-        self.sess.headers.update(headers)
-
-        if access_token is None:
+        if access_token is not None:
+            self.access_token = access_token
+            self.logged_in = logged_in
+            # In theory, we could detect this automatically.
+            # Seems that authenticated tokens start with ".3" and anon tokens with ".5".
+        elif logged_in:
+            raise TypeError("passed `logged_in` without `access_token`")
+        elif auto_refresh_session:
             self.refresh_session()
-        else:
-            self.set_access_token(access_token)
+
+    @property
+    def access_token(self) -> Optional[str]:
+        return self._access_token
+
+    @access_token.setter
+    def access_token(self, token: Optional[str]) -> None:
+        self._access_token = token
+        self.sess.headers["X-Access-Token"] = token  # type: ignore
+
+    @property
+    def host(self) -> str:
+        return self._host
+
+    @host.setter
+    def host(self, host: str) -> None:
+        self._host = host
+        self.sess.headers["Host"] = host
+
+    def log_in(self, username: str, password: str) -> Response:
+        return self.refresh_session((username, password))
+
+    def refresh_session(self, auth: Optional[Auth] = None) -> Optional[Response]:
+        with self.disable_auto_refresh():  # guard against recursive refreshes
+            # get initial anon token
+            self.access_token = self.request(_r.get_access_token(self.device_id))
+            self.logged_in = False
+            if auth := (auth or self.auth):
+                # get user token
+                res = self.request(_r.log_in(auth[0], auth[1], self.device_id))
+                self.access_token = res["accessToken"]
+                self.logged_in = True
+                return res["user"]
+        return None
+
+    def check_session(self) -> bool:
+        with self.disable_auto_refresh():
+            with contextlib.suppress(RequestError, OperationError):
+                self.request(_r.fetch_my_profile())
+                self.logged_in = True
+                return True
+            self.logged_in = False
+            self.access_token = None
+            return False
+
+    @contextlib.contextmanager
+    def disable_auto_refresh(self):
+        old_val = self.auto_refresh_session
+        self.auto_refresh_session = False
+        try:
+            yield
+        finally:
+            self.auto_refresh_session = old_val
 
     def request(
         self,
@@ -80,27 +157,35 @@ class AskfmApi:
         offset: int = 0,
         limit: int = DEFAULT_LIMIT,
     ) -> Response:
+        if not self.access_token and self.auto_refresh_session:
+            self.refresh_session()
+
         if req.paginated:
             params = {"offset": offset, "limit": limit, **req.params}
         else:
             params = req.params
 
-        res = self.request_raw(req.method, req.path, params)
-        if (
-            self.auto_refresh_session
-            and "error" in res
-            and ERROR_CODE_MAP[res["error"]] is SessionError
-        ):
-            self.refresh_session()
-            res = self.request_raw(req.method, req.path, params)  # attempt #2
-
-        if "error" in res:
-            raise AskfmApiError.from_response(res)
+        for i in itertools.count():
+            res = self.request_raw(req.method, req.path, params)
+            if "error" not in res:
+                break
+            error = AskfmApiError.from_response(res)
+            if not self.handle_error(error, req, i):
+                raise error
 
         if unwrap and req.unwrap_key:
             res = res[req.unwrap_key]
-
         return res
+
+    def handle_error(self, error: AskfmApiError, req: Request, attempt_no: int) -> bool:
+        """Invalidate/refresh the session and return whether we should retry the request."""
+        if isinstance(error, SessionError):
+            self.logged_in = False
+            self.access_token = None
+            if attempt_no == 1 and self.auto_refresh_session:
+                self.refresh_session()
+                return True
+        return False
 
     def request_iter(
         self,
@@ -134,29 +219,20 @@ class AskfmApi:
         params = self.normalize_params(params)
         if has_body:
             params = {"json": json.dumps(params, sort_keys=True, separators=(",", ":"))}
-
         signature = f"HMAC {self.get_signature(method, path, params)}"
-
-        data_: Optional[StrParams]
-        params_: Optional[StrParams]
-        if has_body:
-            data_, params_ = params, None
-        else:
-            data_, params_ = None, params
 
         res = self.sess.request(
             method,
             url,
-            data=data_,
-            params=params_,
+            data=params if has_body else None,
+            params=params if not has_body else None,
             headers={"Authorization": signature},
         )
 
         if "X-Next-Token" in res.headers:
             self.rt = res.headers["X-Next-Token"]
 
-        res = res.json()
-        return res
+        return res.json()
 
     def normalize_params(self, params: ReqParams) -> ReqParams:
         result = {}
@@ -175,26 +251,3 @@ class AskfmApi:
 
         hmac_ = hmac.new(self.api_key, msg.encode(), "sha1")
         return hmac_.hexdigest()
-
-    def login(self, username: str, password: str) -> Response:
-        res = self.request(_r.login(username, password, self.device_id))
-        self.set_access_token(res["accessToken"])
-        if self.auto_refresh_session:
-            self.username = username
-            self.password = password
-        return res["user"]
-
-    def refresh_session(self) -> None:
-        old_val = self.auto_refresh_session
-        self.auto_refresh_session = False  # guard against recursive refreshes
-
-        access_token = self.request(_r.fetch_access_token(self.device_id))
-        self.set_access_token(access_token)
-        if self.username is not None and self.password is not None:
-            self.login(self.username, self.password)
-
-        self.auto_refresh_session = old_val
-
-    def set_access_token(self, token: str) -> None:
-        self.access_token = token
-        self.sess.headers["X-Access-Token"] = token

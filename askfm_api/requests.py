@@ -143,12 +143,12 @@ def report_user(
 
 
 @make_req("GET", "/token", unwrap_key="accessToken")
-def fetch_access_token(device_id: IdType):
+def get_access_token(device_id: IdType):
     return {"did": device_id}
 
 
 @make_req("POST", "/authorize")
-def login(username: str, password: str, device_id: IdType):
+def log_in(username: str, password: str, device_id: IdType):
     return {
         "uid": username,
         "pass": password,
