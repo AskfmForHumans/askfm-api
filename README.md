@@ -10,6 +10,12 @@ This aims to be a powerful Python wrapper around the undocumented ASKfm API for 
 Currently based on reverse-engineering ASKfm Android app v4.67.1, which uses ASKfm API version 1.18.
 The core logic is quite complete, but only a small subset of API methods have helpers in the `askfm_api.requests` module so far.
 
+## Feature highlights
+
+- iterators for paginated requests
+- full error hierarchy based on semantics
+- automatic session refreshing
+
 ## Usage
 
 The code should be self-explanatory so I won't go into great detail here. Quick example:
@@ -20,7 +26,7 @@ from askfm_api import requests as r
 
 try:
     api = AskfmApi("<secret key>", device_id="D2A6C471C4B4DA5C")
-    me = api.login("username", "password")
+    me = api.log_in("username", "password")
     print(me)
     # {'uid': 'jgrdlgrd', 'fullName': 'Снег не растает', 'location': 'my empire of dirt', ...}
 

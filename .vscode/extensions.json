@@ -1,6 +1,5 @@
 {
     "recommendations": [
-        "tamasfe.even-better-toml",
-        "knowsuchagency.pdm-task-provider"
+        "ms-python.python"
     ]
 }
