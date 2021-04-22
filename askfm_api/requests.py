@@ -57,7 +57,7 @@ def delete_hashtag(hashtag: str):
     return {"hashtag": hashtag}
 
 
-# === My questions ===
+# === My Q&A ===
 
 
 @make_req(
@@ -87,6 +87,11 @@ def post_answer(question_type: str, question_id: IdType, text: str):
     }
 
 
+@make_req("DELETE", "/my/answers")
+def delete_answer(question_id: IdType):
+    return {"qid": question_id}
+
+
 # === Users ===
 
 
@@ -106,8 +111,15 @@ def fetch_profile(username: str):
     return {"uid": username}
 
 
+@make_req(
+    "GET", "/users/answers", unwrap_key="questions", paginated=True, item_id_key="qid"
+)
+def fetch_answers(username: str, *, skip: Optional[str] = None):
+    return {"uid": username, "skip": skip}
+
+
 @make_req("POST", "/users/questions")
-def send_question(users: list[str], text: str, anon: bool = False):
+def send_question(users: list[str], text: str, *, anon: bool = False):
     return {
         "users": users,
         "question": {
@@ -127,14 +139,14 @@ def report_answer(question_id: IdType, reason: Optional[str] = None):
 
 @make_req("POST", "/report/question")
 def report_question(
-    question_id: IdType, reason: Optional[str] = None, should_block: bool = False
+    question_id: IdType, reason: Optional[str] = None, *, should_block: bool = False
 ):
     return {"qid": question_id, "reason": reason, "block": should_block}
 
 
 @make_req("POST", "/report/user")
 def report_user(
-    username: str, reason: Optional[str] = None, should_block: bool = False
+    username: str, reason: Optional[str] = None, *, should_block: bool = False
 ):
     return {"uid": username, "reason": reason, "block": should_block}
 
