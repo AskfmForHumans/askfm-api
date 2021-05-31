@@ -3,7 +3,7 @@
 [![PyPI version](https://img.shields.io/pypi/v/askfm-api.svg)](https://pypi.org/project/askfm-api)
 [![PyPI status](https://img.shields.io/pypi/status/askfm-api.svg)](https://pypi.org/project/askfm-api)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Project manager: pdm](https://img.shields.io/badge/project%20manager-pdm-blue.svg)](https://github.com/frostming/pdm)
+[![pdm-managed](https://img.shields.io/badge/pdm-managed-blueviolet)](https://pdm.fming.dev)
 
 This aims to be a powerful Python wrapper around the undocumented ASKfm API for its mobile apps.
 
