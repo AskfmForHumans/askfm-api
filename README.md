@@ -5,10 +5,14 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![pdm-managed](https://img.shields.io/badge/pdm-managed-blueviolet)](https://pdm.fming.dev)
 
+> **WARNING!**  
+> This library is outdated and doesn't support much of ASKfm's new functionality.  
+> It is based on reverse-engineering ASKfm Android app v4.67.1 (API version 1.18) from the year **2020**.
+
 This aims to be a powerful Python wrapper around the undocumented ASKfm API for its mobile apps.
 
-Currently based on reverse-engineering ASKfm Android app v4.67.1, which uses ASKfm API version 1.18.
 The core logic is quite complete, but only a small subset of API methods have helpers in the `askfm_api.requests` module so far.
+
 
 ## Feature highlights
 
@@ -18,15 +22,15 @@ The core logic is quite complete, but only a small subset of API methods have he
 
 ## Usage
 
-The code should be self-explanatory so I won't go into great detail here. Quick example:
+The code should be self-explanatory so I won't go into great detail here. A quick example:
 
 ```python
 from askfm_api import AskfmApi, AskfmApiError
 from askfm_api import requests as r
 
 try:
-    api = AskfmApi("<secret key>", device_id="D2A6C471C4B4DA5C")
-    me = api.log_in("username", "password")
+    api = AskfmApi("<signing key>")
+    me = api.log_in("<username>", "<password>")
     print(me)
     # {'uid': 'jgrdlgrd', 'fullName': 'Снег не растает', 'location': 'my empire of dirt', ...}
 
@@ -49,6 +53,8 @@ except AskfmApiError as e:
 All requests are signed using a secret key (unique per app version) that is stored inside the official app in an obfuscated manner.
 I don't find it ethical to publish it, so if you want to use this library, your options are:
 - extract the key by yourself
+  - *hint 1:* use APK version 4.67.1
+  - *hint 2:* if you found `"YKhyxNvWDwMhHxPpmHMZecqsXCKzS"` — that's not the key, but you are on the right path :)
 - contact [me](https://github.com/snowwm), explain your use case and ask for the key
 
 ## Todo
